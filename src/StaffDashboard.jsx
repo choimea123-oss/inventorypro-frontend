@@ -21,6 +21,14 @@ const StaffDashboard = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const [restockModal, setRestockModal] = useState(null);
   const [restockAmount, setRestockAmount] = useState("");
+  const [editModal, setEditModal] = useState(null);
+  const [editForm, setEditForm] = useState({
+    product_name: "",
+    product_desc: "",
+    category: "",
+    product_price: "",
+    barcode: "",
+  });
 
   // POS State
   const [cart, setCart] = useState([]);
@@ -221,6 +229,93 @@ const StaffDashboard = ({ user }) => {
     } catch (err) {
       console.error("Restock error:", err);
       alert("Error: " + (err.response?.data?.message || "Failed to restock product"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Edit product functions
+  const openEditModal = (product) => {
+    setEditModal(product);
+    setEditForm({
+      product_name: product.product_name,
+      product_desc: product.product_desc || "",
+      category: product.category || "",
+      product_price: product.product_price,
+      barcode: product.barcode || "",
+    });
+  };
+
+  const closeEditModal = () => {
+    setEditModal(null);
+    setEditForm({
+      product_name: "",
+      product_desc: "",
+      category: "",
+      product_price: "",
+      barcode: "",
+    });
+  };
+
+  const handleEditChange = (e) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editModal) return;
+
+    if (!editForm.product_name.trim() || parseFloat(editForm.product_price) <= 0) {
+      alert("Please provide valid product name and price");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.put(`/products/${editModal.product_id}`, {
+        product_name: editForm.product_name,
+        product_desc: editForm.product_desc,
+        category: editForm.category,
+        product_price: parseFloat(editForm.product_price),
+        barcode: editForm.barcode,
+        org_id: orgId,
+      });
+
+      alert("Product updated successfully!");
+
+      setProducts(
+        products.map((p) =>
+          p.product_id === editModal.product_id
+            ? { ...p, ...editForm, product_price: parseFloat(editForm.product_price) }
+            : p
+        )
+      );
+
+      closeEditModal();
+    } catch (err) {
+      console.error("Edit error:", err);
+      alert("Error: " + (err.response?.data?.message || "Failed to update product"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete product function
+  const handleDeleteProduct = async (product) => {
+    if (!window.confirm(`Are you sure you want to delete "${product.product_name}"?\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.delete(`/products/${product.product_id}`, {
+        data: { org_id: orgId },
+      });
+
+      alert("Product deleted successfully!");
+      setProducts(products.filter((p) => p.product_id !== product.product_id));
+    } catch (err) {
+      console.error("Delete error:", err);
+      alert("Error: " + (err.response?.data?.message || "Failed to delete product"));
     } finally {
       setLoading(false);
     }
@@ -804,6 +899,18 @@ const StaffDashboard = ({ user }) => {
                             >
                               Restock
                             </button>
+                            <button
+                              onClick={() => openEditModal(p)}
+                              style={styles.editButton}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(p)}
+                              style={styles.deleteButton}
+                            >
+                              Delete
+                            </button>
                             {p.barcode && (
                               <>
                                 <button
@@ -1133,6 +1240,125 @@ const StaffDashboard = ({ user }) => {
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      {editModal && (
+        <div
+          style={styles.modal}
+          onClick={closeEditModal}
+        >
+          <div
+            style={styles.modalContent}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={styles.modalHeader}>
+              <h2 style={{ margin: 0 }}>Edit Product</h2>
+              <button onClick={closeEditModal} style={styles.closeButton}>
+                ×
+              </button>
+            </div>
+            
+            <div style={styles.modalBody}>
+              <div style={{ marginBottom: "15px" }}>
+                <label style={styles.label}>Product Name:</label>
+                <input
+                  type="text"
+                  name="product_name"
+                  value={editForm.product_name}
+                  onChange={handleEditChange}
+                  placeholder="Enter product name"
+                  required
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={styles.label}>Description:</label>
+                <input
+                  type="text"
+                  name="product_desc"
+                  value={editForm.product_desc}
+                  onChange={handleEditChange}
+                  placeholder="Enter description"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={styles.label}>Category:</label>
+                <input
+                  type="text"
+                  name="category"
+                  value={editForm.category}
+                  onChange={handleEditChange}
+                  placeholder="Enter category"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ marginBottom: "15px" }}>
+                <label style={styles.label}>Price:</label>
+                <input
+                  type="number"
+                  name="product_price"
+                  value={editForm.product_price}
+                  onChange={handleEditChange}
+                  placeholder="0.00"
+                  min="0"
+                  step="0.01"
+                  required
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ marginBottom: "20px" }}>
+                <label style={styles.label}>Barcode:</label>
+                <input
+                  type="text"
+                  name="barcode"
+                  value={editForm.barcode}
+                  onChange={handleEditChange}
+                  placeholder="Enter barcode"
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                <button
+                  onClick={closeEditModal}
+                  disabled={loading}
+                  style={{
+                    padding: "10px 20px",
+                    background: "#e5e7eb",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: loading ? "not-allowed" : "pointer",
+                    fontSize: "14px",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditSubmit}
+                  disabled={loading || !editForm.product_name.trim() || parseFloat(editForm.product_price) <= 0}
+                  style={{
+                    padding: "10px 20px",
+                    background: loading || !editForm.product_name.trim() ? "#9ca3af" : "#3498db",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    cursor: loading || !editForm.product_name.trim() ? "not-allowed" : "pointer",
+                    fontSize: "14px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {loading ? "Updating..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1332,6 +1558,15 @@ const styles = {
     borderRadius: 4,
     border: "none",
     background: "#8b5cf6",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: 12,
+  },
+  editButton: {
+    padding: "6px 12px",
+    borderRadius: 4,
+    border: "none",
+    background: "#f39c12",
     color: "#fff",
     cursor: "pointer",
     fontSize: 12,
