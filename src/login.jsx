@@ -100,7 +100,7 @@ const Login = () => {
             </div>
             <div style={styles.featureItem}>
               <span style={styles.checkmark}>✓</span>
-              <span>Sales analytics & reports</span>
+              <span>Sales reports</span>
             </div>
             <div style={styles.featureItem}>
               <span style={styles.checkmark}>✓</span>
