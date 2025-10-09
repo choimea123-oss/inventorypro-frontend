@@ -6,7 +6,6 @@ const Register = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [organizationName, setOrganizationName] = useState("");
-  const [domainName, setDomainName] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -16,14 +15,11 @@ const Register = () => {
     setLoading(true);
     setMessage("");
 
-    const cleanDomain = domainName.trim().toLowerCase().replace(/\s+/g, '-');
-
     try {
       const res = await api.post("/register-organization", {
         username,
         password,
         organizationName,
-        domainName: cleanDomain,
       });
 
       setMessage(res.data.message);
@@ -102,26 +98,6 @@ const Register = () => {
                 required
                 style={styles.input}
               />
-            </div>
-
-            <div style={styles.inputGroup}>
-              <label style={styles.label}>
-                Domain Name
-                <span style={styles.required}>*</span>
-              </label>
-              <input
-                type="text"
-                value={domainName}
-                onChange={(e) => setDomainName(e.target.value)}
-                placeholder="abc-hardware"
-                required
-                pattern="[a-z0-9-]+"
-                title="Only lowercase letters, numbers, and hyphens"
-                style={styles.input}
-              />
-              <small style={styles.hint}>
-                Your unique identifier (lowercase, numbers, and hyphens only)
-              </small>
             </div>
 
             <div style={styles.inputGroup}>
